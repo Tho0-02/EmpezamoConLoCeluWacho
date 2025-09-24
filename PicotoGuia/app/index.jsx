@@ -1,15 +1,46 @@
 import React, { useState } from "react";
-import { View, TextInput, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, TextInput, Text, TouchableOpacity, ScrollView, Button, Platform, Alert, useWindowDimensions } from "react-native";
+import * as ImagePicker from 'expo-image-picker';
+
 
 import HolaMundo from "../components/holaMundo";
 import MiTarjeta from "../components/MiTarjeta";
-import styles from "./styles";
+import ImagenPersona from "../components/ImagenPersona";
+import { getStyles } from "./theme";
 
 export default function App() {
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 700;
+
   const [color, setColor] = useState("#4A90E2");
   const [fontSize, setFontSize] = useState("28");
   const [nombre, setNombre] = useState("");
   const [curso, setCurso] = useState("");
+  const [imageUrl, setImageUrl] = useState(null);
+  const [darkMode, setDarkMode] = useState(false);
+  const styles = getStyles(darkMode);
+
+  // Request permission and pick image
+  const pickImage = async () => {
+    // Ask for permission
+    if (Platform.OS !== 'web') {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Camera roll permissions are needed to select an image.');
+        return;
+      }
+    }
+    // Pick image
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setImageUrl(result.assets[0].uri);
+    }
+  };
 
   // Preset color options
   const presetColors = [
@@ -28,8 +59,17 @@ export default function App() {
     <View style={styles.page}>
       <View style={styles.header}>
         <Text style={styles.title}>PicotoGuia</Text>
+        <TouchableOpacity
+          onPress={() => setDarkMode((d) => !d)}
+          style={{ position: 'absolute', right: 24, top: 48, padding: 8, backgroundColor: '#3338', borderRadius: 8 }}
+          accessibilityLabel="Presioname para hacer la pagina mas facil de ver"
+        >
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center' }}>
+            Presioname para hacer la pagina mas facil de ver
+          </Text>
+        </TouchableOpacity>
       </View>
-      <ScrollView horizontal contentContainerStyle={styles.horizontalContent} showsHorizontalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[isSmallScreen ? styles.verticalContent : styles.horizontalContent]} showsVerticalScrollIndicator={false} showsHorizontalScrollIndicator={false} horizontal={!isSmallScreen}>
         <View style={styles.activityColumn}>
           <View style={styles.inputCard}>
             <HolaMundo color={color} fontSize={Number(fontSize) || 28} />
@@ -51,6 +91,7 @@ export default function App() {
               onChangeText={setFontSize}
               placeholder="28"
               keyboardType="numeric"
+              placeholderTextColor={darkMode ? '#aaa' : '#888'}
             />
           </View>
         </View>
@@ -63,6 +104,7 @@ export default function App() {
               value={nombre}
               onChangeText={setNombre}
               placeholder="Tu Nombre"
+              placeholderTextColor={darkMode ? '#aaa' : '#888'}
             />
             <Text style={styles.label}>Curso:</Text>
             <TextInput
@@ -70,7 +112,10 @@ export default function App() {
               value={curso}
               onChangeText={setCurso}
               placeholder="Tu Curso"
+              placeholderTextColor={darkMode ? '#aaa' : '#888'}
             />
+            <ImagenPersona nombre={nombre || "Tu Nombre"} imageUrl={imageUrl} />
+            <Button title="Elegir imagen" onPress={pickImage} />
           </View>
         </View>
       </ScrollView>
